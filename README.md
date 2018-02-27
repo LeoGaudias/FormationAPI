@@ -24,3 +24,9 @@ dotnet ef migrations add <Nom de la migration>
 # Mettre à jour le schéma de la BDD
 dotnet ef database update
 ``` 
+
+>Les méthodes de l'API peuvent être tester à l'URL suivant
+
+``` bash
+http://UrlBasename/swagger
+``` 
