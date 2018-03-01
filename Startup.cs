@@ -45,6 +45,9 @@ namespace FormationApi
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
             
+            // https://docs.microsoft.com/en-us/aspnet/core/security/cors
+            services.AddCors();
+
             services.AddMvc();
 
             services.AddSwaggerGen(c => 
@@ -78,6 +81,13 @@ namespace FormationApi
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "FormationApi V1");
             });
+
+            app.UseCors(builder =>
+                builder.WithOrigins("http://localhost:8080")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials()
+                );
 
             app.UseMvc(routes =>
             {

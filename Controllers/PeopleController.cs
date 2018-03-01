@@ -30,9 +30,11 @@ namespace FormationApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("getById")]
-        public Person GetById(int personId)
+        public PersonViewModel GetById(int personId)
         {
-            return _context.Persons.SingleOrDefault(p => p.Id == personId);
+            Person p = _context.Persons.Include(pers => pers.ContactInfoPerso).SingleOrDefault(pers => pers.Id == personId);
+
+            return this.ToPersonViewModel(p);
         }
         
         /// <summary>
@@ -40,33 +42,33 @@ namespace FormationApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("getByName")]
-        public List<Person> GetByName(string query)
+        public List<PersonViewModel> GetByName(string query)
         {
+            List<PersonViewModel> lpvm = null;
+            
             if(!string.IsNullOrEmpty(query))
             {
                 string[] splitQuery = query.Split(' ');
+                List<Person> lp = null;
                 
                 if(splitQuery.Length == 1)
                 {
                     if(!string.IsNullOrEmpty(splitQuery[0]))
                     {
-                        return _context.Persons.Where(p => p.Firstname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant()) || p.Lastname.Contains(splitQuery[0].ToLowerInvariant())).ToList();
-                    }
-                    else
-                    {
-                        return null;
+                        lp = _context.Persons.Where(p => p.Firstname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant()) || p.Lastname.Contains(splitQuery[0].ToLowerInvariant())).ToList();
+                        lpvm = ToListPersonViewModel(lp);
                     }
                 }
                 else
                 {
-                    return _context.Persons.Where(p => (p.Firstname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant()) || p.Lastname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant())) && 
+                    lp = _context.Persons.Where(p => (p.Firstname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant()) || p.Lastname.ToLowerInvariant().Contains(splitQuery[0].ToLowerInvariant())) && 
                                                     (p.Firstname.ToLowerInvariant().Contains(splitQuery[1].ToLowerInvariant()) || p.Lastname.ToLowerInvariant().Contains(splitQuery[1].ToLowerInvariant()))).ToList();
+                    lpvm = ToListPersonViewModel(lp);
+
                 }
             }
-            else
-            {
-                return null;
-            }
+
+            return lpvm;
         }
 
         /// <summary>
@@ -74,9 +76,11 @@ namespace FormationApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("getBySkill")]
-        public List<Person> GetBySkill(string skill)
+        public List<PersonViewModel> GetBySkill(string skill)
         {
-            return _context.Persons.Where(p => p.Skills.Any(s => s.Name.ToLowerInvariant().Contains(skill.ToLowerInvariant()))).ToList();
+            List<Person> lp = _context.Persons.Where(p => p.Skills.Any(s => s.Name.ToLowerInvariant().Contains(skill.ToLowerInvariant()))).ToList();
+
+            return ToListPersonViewModel(lp);
         }
 
         
@@ -85,19 +89,19 @@ namespace FormationApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("getRandom")]
-        public Person GetRandom()
+        public PersonViewModel GetRandom()
         {
             Random rand = new Random();
-            Person res = null;
+            Person p = null;
             
             int countRows = _context.Persons.ToList().Count;
 
-            while(res == null)
+            while(p == null)
             {
-                res = _context.Persons.SingleOrDefault(p => p.Id == rand.Next(countRows + 1));
+                p = _context.Persons.Include(pers => pers.ContactInfoPerso).FirstOrDefault(pers => pers.Id == rand.Next(countRows + 1));
             }
 
-            return res;
+            return this.ToPersonViewModel(p);
         }
 
         /// <summary>
@@ -105,9 +109,11 @@ namespace FormationApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet, Route("getAll")]
-        public List<Person> GetAll()
+        public List<PersonViewModel> GetAll()
         {
-            return _context.Persons.ToList();
+            List<Person> lp = _context.Persons.Include(pers => pers.ContactInfoPerso).ToList();
+            
+            return this.ToListPersonViewModel(lp);
         }
 
         #endregion
@@ -196,11 +202,11 @@ namespace FormationApi.Controllers
         /// 
         /// </summary>
         [HttpDelete, Route("delete")]
-        public void Delete(int Id)
+        public void Delete(int personId)
         {
             try
             {
-                Person p = _context.Persons.Include(pers => pers.ContactInfoPerso).SingleOrDefault(pers => pers.Id == Id);
+                Person p = _context.Persons.Include(pers => pers.ContactInfoPerso).SingleOrDefault(pers => pers.Id == personId);
                 
                 if(p != null)
                 {
@@ -215,6 +221,48 @@ namespace FormationApi.Controllers
             }
         }
 
-        #endregion
+    #endregion
+
+    #region private methods
+
+    private PersonViewModel ToPersonViewModel(Person p) => new PersonViewModel
+    {
+        Id = p.Id,
+        Firstname = p.Firstname,
+        Lastname = p.Lastname,
+        Entity = p.Entity,
+        Email = p.ContactInfoPerso.Mail,
+        Phone = p.ContactInfoPerso.MobilePhone,
+        Manager = p.Manager,
+        Photo = p.Photo
+    };
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="lp"></param>
+    /// <returns></returns>
+    private List<PersonViewModel> ToListPersonViewModel(List<Person> lp)
+        {
+            List<PersonViewModel> res = new List<PersonViewModel>();
+
+            foreach(Person p in lp)
+            {
+                res.Add(new PersonViewModel {
+                    Id = p.Id,
+                    Firstname = p.Firstname ,
+                    Lastname = p.Lastname,
+                    Entity = p.Entity,
+                    Email = p.ContactInfoPerso.Mail,
+                    Phone = p.ContactInfoPerso.MobilePhone,
+                    Manager = p.Manager,
+                    Photo = p.Photo
+                });
+            }
+
+            return res;
+        }
+        
+        #endregion 
     }
 }
